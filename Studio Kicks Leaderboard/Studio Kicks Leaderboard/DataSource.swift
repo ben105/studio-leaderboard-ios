@@ -13,7 +13,12 @@ class DataSource {
   fileprivate let perfectMindAPI: PerfectMindAPI = PerfectMindAPI()
   fileprivate let perfectMindModel: PerfectMindModel = PerfectMindModel()
 
-  fileprivate let updateLock: NSLock = NSLock()
+  fileprivate var updateQueue: OperationQueue = {
+    var queue = OperationQueue()
+    queue.name = "UpdateQueue"
+    queue.maxConcurrentOperationCount = 1
+    return queue
+  }()
 
   fileprivate var dispatchGroup = DispatchGroup()
 
@@ -58,16 +63,17 @@ class DataSource {
   }()
 
   func update() {
-    updateLock.lock()
-    // Attained an update lock so we don't keep updating back-to-back.
-    attendanceUpdater.update()
-    clientUpdater.update()
-    teachersUpdater.update()
-    eventsUpdater.update()
-    transactionsUpdater.update()
-    dispatchGroup.notify(queue: .main) {
-      // We've now finished updating all tables.
-      self.updateLock.unlock()
+    guard updateQueue.operationCount < 10 else {
+      // There's already too many update operations queued up. Bail.
+      return
+    }
+    updateQueue.addOperation {
+      self.attendanceUpdater.update()
+      self.clientUpdater.update()
+      self.teachersUpdater.update()
+      self.eventsUpdater.update()
+      self.transactionsUpdater.update()
+      self.dispatchGroup.wait()
       self.perfectMindModel.attendance(after: 1519862400) { (results) in
         print(results)
       }
