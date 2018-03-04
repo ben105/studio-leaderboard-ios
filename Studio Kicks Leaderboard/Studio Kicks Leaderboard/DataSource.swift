@@ -74,7 +74,7 @@ class DataSource {
       self.eventsUpdater.update()
       self.transactionsUpdater.update()
       self.dispatchGroup.wait()
-      self.perfectMindModel.attendance(after: 1519862400) { (results) in
+      self.perfectMindModel.attendanceForThisMonth { (results) in
         print(results)
       }
     }

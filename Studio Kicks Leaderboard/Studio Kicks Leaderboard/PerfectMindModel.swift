@@ -477,6 +477,16 @@ extension PerfectMindModel {
 
 extension PerfectMindModel {
 
+  func attendanceForThisMonth(
+    completion: @escaping ([(name: String, count: Int64)]) -> Void)
+  {
+    // We get today's year and month components.
+    let todaysComponents = Calendar.current.dateComponents([.year, .month], from: Date())
+    // Instantiating a new date from these components will default the day to 1.
+    let startOfMonth = Calendar.current.date(from: todaysComponents)
+    attendance(after: startOfMonth?.timeIntervalSince1970 ?? 0, completion: completion)
+  }
+
   func attendance(
     after epoch: TimeInterval,
     completion: @escaping ([(name: String, count: Int64)]) -> Void)
