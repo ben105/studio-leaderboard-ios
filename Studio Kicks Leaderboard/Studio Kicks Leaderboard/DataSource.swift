@@ -62,7 +62,7 @@ class DataSource {
     return updater
   }()
 
-  func update() {
+  func update(completion: @escaping ([(name: String, count: Int64)]) -> Void) {
     guard updateQueue.operationCount < 10 else {
       // There's already too many update operations queued up. Bail.
       return
@@ -74,9 +74,7 @@ class DataSource {
       self.eventsUpdater.update()
       self.transactionsUpdater.update()
       self.dispatchGroup.wait()
-      self.perfectMindModel.attendanceForThisMonth { (results) in
-        print(results)
-      }
+      self.perfectMindModel.attendanceForThisMonth(completion: completion)
     }
   }
 
