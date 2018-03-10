@@ -60,19 +60,22 @@ struct LeaderboardColors {
 
 class RankCircle: UIView {
 
-  static let radius: CGFloat = 60.0
+  static let diameter: CGFloat = 60.0
 
   var label: UILabel = {
     let label = UILabel()
     label.translatesAutoresizingMaskIntoConstraints = false
+    label.font = UIFont.systemFont(ofSize: 24.0)
+    label.backgroundColor = UIColor.clear
     label.textAlignment = .center
     return label
   }()
 
   init() {
-    super.init(frame: CGRect.zero)
+    super.init(frame: CGRect(x: 0, y:0, width: RankCircle.diameter, height: RankCircle.diameter))
+    self.layer.cornerRadius = RankCircle.diameter / 2.0
+    self.backgroundColor = UIColor.white
     self.addSubview(self.label)
-    self.label.backgroundColor = UIColor.white
     self.label.leftAnchor.constraint(equalTo: self.leftAnchor).isActive = true
     self.label.rightAnchor.constraint(equalTo: self.rightAnchor).isActive = true
     self.label.topAnchor.constraint(equalTo: self.topAnchor).isActive = true
@@ -83,13 +86,8 @@ class RankCircle: UIView {
     fatalError("init(coder:) has not been implemented")
   }
 
-  override func layoutSubviews() {
-    super.layoutSubviews()
-    layer.cornerRadius = frame.width / 2.0
-  }
-
   override var intrinsicContentSize: CGSize {
-    return CGSize(width: RankCircle.radius, height: RankCircle.radius)
+    return CGSize(width: RankCircle.diameter, height: RankCircle.diameter)
   }
 
 }
@@ -98,10 +96,38 @@ class LeaderboardCell: UICollectionViewCell {
 
   static let cellHeight: CGFloat = 140.0
 
+  var isCompactLayout: Bool = false {
+    didSet {
+      setNeedsLayout()
+      layoutIfNeeded()
+    }
+  }
+
+  fileprivate var rankCircleLeftAnchor: NSLayoutConstraint = NSLayoutConstraint()
+  fileprivate var clientLabelLeftAnchor: NSLayoutConstraint = NSLayoutConstraint()
+  fileprivate var clientLabelRightAnchor: NSLayoutConstraint = NSLayoutConstraint()
+  fileprivate var attendanceCountRightAnchor: NSLayoutConstraint = NSLayoutConstraint()
+
   var rankCircle: RankCircle = {
     let rankCircle = RankCircle()
     rankCircle.translatesAutoresizingMaskIntoConstraints = false
     return rankCircle
+  }()
+
+  var attendanceLabel: UILabel = {
+    let label = UILabel()
+    label.translatesAutoresizingMaskIntoConstraints = false
+    label.font = UIFont.systemFont(ofSize: 24.0)
+    label.textColor = UIColor.white
+    return label
+  }()
+
+  var clientName: UILabel = {
+    let label = UILabel()
+    label.translatesAutoresizingMaskIntoConstraints = false
+    label.font = UIFont.systemFont(ofSize: 24.0)
+    label.textColor = UIColor.white
+    return label
   }()
 
   var color: UIColor = .clear {
@@ -114,8 +140,42 @@ class LeaderboardCell: UICollectionViewCell {
   override init(frame: CGRect) {
     super.init(frame: frame)
     self.addSubview(self.rankCircle)
-    self.rankCircle.leftAnchor.constraint(equalTo: self.leftAnchor, constant: 26.0).isActive = true
+    self.addSubview(self.attendanceLabel)
+    self.addSubview(self.clientName)
+
     self.rankCircle.centerYAnchor.constraint(equalTo: self.centerYAnchor).isActive = true
+    self.rankCircle.widthAnchor.constraint(equalToConstant: RankCircle.diameter).isActive = true
+    self.attendanceLabel.centerYAnchor.constraint(equalTo: self.centerYAnchor).isActive = true
+    self.clientName.rightAnchor.constraint(
+      lessThanOrEqualTo: self.attendanceLabel.leftAnchor, constant: -8.0).isActive = true
+    self.clientName.centerYAnchor.constraint(equalTo: self.rankCircle.centerYAnchor).isActive = true
+    self.clientName.widthAnchor.constraint(equalToConstant: 130.0).isActive = true
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+
+    rankCircleLeftAnchor.isActive = false
+    clientLabelLeftAnchor.isActive = false
+    attendanceCountRightAnchor.isActive = false
+
+    let rankCircleLeft: CGFloat = isCompactLayout ? 14.0 : 26.0
+    let clientLabelLeft: CGFloat = isCompactLayout ? 16.0 : 32.0
+    let attendanceCounterRight: CGFloat = isCompactLayout ? -25.0 : -50.0
+
+    rankCircleLeftAnchor = rankCircle.leftAnchor.constraint(
+      equalTo: self.leftAnchor,
+      constant: rankCircleLeft)
+    clientLabelLeftAnchor = clientName.leftAnchor.constraint(
+      equalTo: self.rankCircle.rightAnchor,
+      constant: clientLabelLeft)
+    attendanceCountRightAnchor = attendanceLabel.rightAnchor.constraint(
+      equalTo: rightAnchor,
+      constant: attendanceCounterRight)
+
+    rankCircleLeftAnchor.isActive = true
+    clientLabelLeftAnchor.isActive = true
+    attendanceCountRightAnchor.isActive = true
   }
 
   required init?(coder aDecoder: NSCoder) {

@@ -12,13 +12,25 @@ class ViewController: UIViewController {
 
   fileprivate static let leaderboardIdentifier: String = "kLeaderboardIdentifier"
 
-  fileprivate let sectionInsets = UIEdgeInsets(top: 50.0, left: 20.0, bottom: 50.0, right: 20.0)
+  var topAttendance: [(name: String, count: Int64)] = []
+  var extraAttendance: [(name: String, count: Int64)] = []
+
+  fileprivate let topSectionInsets = UIEdgeInsets.zero
+  fileprivate let extraSectionInsets = UIEdgeInsets(
+    top: 12.0,
+    left: 12.0,
+    bottom: 12.0,
+    right: 12.0)
 
   fileprivate lazy var collectionView: UICollectionView = {
     let collectionView = UICollectionView(
       frame: CGRect.zero,
       collectionViewLayout: UICollectionViewFlowLayout())
-    collectionView.backgroundColor = .clear
+    collectionView.backgroundColor = UIColor(
+      red: 56.0/255.0,
+      green: 60.0/255.0,
+      blue: 76.0/255.0,
+      alpha: 1.0)
     collectionView.delegate = self
     collectionView.dataSource = self
     collectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -32,7 +44,20 @@ class ViewController: UIViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    dataSource.update()
+
+    Timer.scheduledTimer(
+      withTimeInterval: 2.0,
+      repeats: true) { (timer) in
+        self.dataSource.update() { (results) in
+          print("Results from update >>>>>>>> \(results.count)")
+          let toTopFive = min(results.count, 5)
+          self.topAttendance = Array(results[..<toTopFive])
+          self.extraAttendance = results.count > 5 ? Array(results[5...]) : []
+          DispatchQueue.main.async {
+            self.collectionView.reloadData()
+          }
+        }
+    }
 
     view.addSubview(collectionView)
     collectionView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
@@ -58,7 +83,11 @@ extension ViewController: UICollectionViewDataSource {
     _ collectionView: UICollectionView,
     numberOfItemsInSection section: Int) -> Int
   {
-    return 5
+    guard section == 0 else {
+      return extraAttendance.count
+    }
+    // TODO: Show an empty state, when topAttendance.count == 0
+    return topAttendance.count
   }
 
   func collectionView(
@@ -69,13 +98,24 @@ extension ViewController: UICollectionViewDataSource {
       withReuseIdentifier: ViewController.leaderboardIdentifier,
       for: indexPath) as? LeaderboardCell else
     {
-        fatalError("failed trying to dequeue a reusable cell")
+      fatalError("failed trying to dequeue a reusable cell")
     }
     switch indexPath.section {
-    case 0: cell.color = LeaderboardColors.color(for: indexPath.row)
-    default: cell.color = LeaderboardColors.extraPlace
+    case 0:
+      cell.color = LeaderboardColors.color(for: indexPath.row)
+      cell.clientName.text = topAttendance[indexPath.row].name
+      cell.attendanceLabel.text = "\(topAttendance[indexPath.row].count)"
+    default:
+      cell.color = LeaderboardColors.extraPlace
+      cell.clientName.text = extraAttendance[indexPath.row].name
+      cell.attendanceLabel.text = "\(extraAttendance[indexPath.row].count)"
     }
-    cell.rankCircle.label.text = "\(indexPath.row + 1)"
+    cell.isCompactLayout = indexPath.section == 1
+    var rank = indexPath.row + 1
+    if indexPath.section == 1 {
+      rank += 5
+    }
+    cell.rankCircle.label.text = "\(rank)"
     return cell
   }
 }
@@ -88,12 +128,14 @@ extension ViewController : UICollectionViewDelegateFlowLayout {
     sizeForItemAt indexPath: IndexPath) -> CGSize
   {
     var itemsPerRow: CGFloat = 1
+    var insets = topSectionInsets
     if indexPath.section == 1 {
       itemsPerRow = 3
+      insets = extraSectionInsets
     }
-    let paddingSpace = sectionInsets.left * (itemsPerRow + 1)
+    let paddingSpace = insets.left * (itemsPerRow + 1)
     let availableWidth = view.frame.width - paddingSpace
-    let widthPerItem = availableWidth / itemsPerRow
+    let widthPerItem = floor(availableWidth / itemsPerRow)
     return CGSize(width: widthPerItem, height: LeaderboardCell.cellHeight)
   }
 
@@ -102,7 +144,10 @@ extension ViewController : UICollectionViewDelegateFlowLayout {
     layout collectionViewLayout: UICollectionViewLayout,
     insetForSectionAt section: Int) -> UIEdgeInsets
   {
-    return sectionInsets
+    guard section == 0 else {
+      return extraSectionInsets
+    }
+    return topSectionInsets
   }
 
   func collectionView(
@@ -110,7 +155,10 @@ extension ViewController : UICollectionViewDelegateFlowLayout {
     layout collectionViewLayout: UICollectionViewLayout,
     minimumLineSpacingForSectionAt section: Int) -> CGFloat
   {
-    return sectionInsets.left
+    guard section == 0 else {
+      return extraSectionInsets.left
+    }
+    return topSectionInsets.left
   }
 }
 
