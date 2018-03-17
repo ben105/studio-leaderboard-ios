@@ -42,28 +42,40 @@ class ViewController: UIViewController {
 
   fileprivate let dataSource: DataSource = DataSource()
 
+  fileprivate func handleResults(_ results: [(name: String, count: Int64)]) {
+    let toTopFive = min(results.count, 5)
+    self.topAttendance = Array(results[..<toTopFive])
+    self.extraAttendance = results.count > 5 ? Array(results[5...]) : []
+    DispatchQueue.main.async {
+      self.collectionView.reloadData()
+    }
+  }
+
+  fileprivate func update() {
+    dataSource.update() { (results) in
+      self.handleResults(results)
+      self.update()
+    }
+  }
+
+  fileprivate func initialUpdate() {
+    dataSource.update() { (results) in
+      self.handleResults(results)
+      self.dataSource.save()
+      self.update()
+    }
+  }
+
   override func viewDidLoad() {
     super.viewDidLoad()
-
-    Timer.scheduledTimer(
-      withTimeInterval: 2.0,
-      repeats: true) { (timer) in
-        self.dataSource.update() { (results) in
-          print("Results from update >>>>>>>> \(results.count)")
-          let toTopFive = min(results.count, 5)
-          self.topAttendance = Array(results[..<toTopFive])
-          self.extraAttendance = results.count > 5 ? Array(results[5...]) : []
-          DispatchQueue.main.async {
-            self.collectionView.reloadData()
-          }
-        }
-    }
 
     view.addSubview(collectionView)
     collectionView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
     collectionView.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
     collectionView.topAnchor.constraint(equalTo: view.topAnchor).isActive = true
     collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
+
+    initialUpdate()
   }
 
   override func didReceiveMemoryWarning() {
