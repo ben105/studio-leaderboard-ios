@@ -18,8 +18,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
     // Instantiate the model. If a failure occurs in this part of the setup, the app needs to
     // fail quickly.
-    model = PerfectMindModel()
-    
     return true
   }
 
@@ -42,7 +40,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   }
 
   func applicationWillTerminate(_ application: UIApplication) {
-    // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
   }
 
 
