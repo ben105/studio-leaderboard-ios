@@ -83,6 +83,7 @@ class SQLiteManager {
       debugPrint("error preparing query: \(errmsg)")
       return nil
     }
+
     for (index, arg) in args.enumerated() {
       self.bind(arg, at: Int32(index + 1), to: &stmt!)
     }
@@ -95,6 +96,7 @@ class SQLiteManager {
       debugPrint("failure executing query: \(errmsg)")
       return
     }
+    sqlite3_finalize(statement)
   }
 
   func execute(_ nonBindingQuery: String) {
@@ -128,6 +130,7 @@ class SQLiteManager {
       }
       rowData.append(columnData)
     }
+    sqlite3_finalize(statement)
     return rowData
   }
 
