@@ -13,19 +13,14 @@ class DataSource {
   fileprivate let perfectMindAPI: PerfectMindAPI = PerfectMindAPI()
   fileprivate let perfectMindModel: PerfectMindModel = PerfectMindModel()
 
-  fileprivate var updateQueue: OperationQueue = {
-    var queue = OperationQueue()
-    queue.name = "UpdateQueue"
-    queue.maxConcurrentOperationCount = 1
-    return queue
-  }()
-
-  fileprivate var dispatchGroup = DispatchGroup()
+  fileprivate let updateQueue = DispatchQueue(label: "update-queue")
+  fileprivate let dispatchGroup = DispatchGroup()
 
   fileprivate lazy var attendanceUpdater: DataSourceUpdater = {
     let updater = DataSourceUpdater(
       fetcher: perfectMindAPI.attendance,
-      recordInserter: perfectMindModel.insertAttendance)
+      model: perfectMindModel,
+      table: .attendance)
     updater.delegate = self
     return updater
   }()
@@ -33,7 +28,8 @@ class DataSource {
   fileprivate lazy var clientUpdater: DataSourceUpdater = {
     let updater = DataSourceUpdater(
       fetcher: perfectMindAPI.contacts,
-      recordInserter: perfectMindModel.insertClient)
+      model: perfectMindModel,
+      table: .clients)
     updater.delegate = self
     return updater
   }()
@@ -41,7 +37,8 @@ class DataSource {
   fileprivate lazy var teachersUpdater: DataSourceUpdater = {
     let updater = DataSourceUpdater(
       fetcher: perfectMindAPI.teachers,
-      recordInserter: perfectMindModel.insertTeacher)
+      model: perfectMindModel,
+      table: .teachers)
     updater.delegate = self
     return updater
   }()
@@ -49,7 +46,8 @@ class DataSource {
   fileprivate lazy var eventsUpdater: DataSourceUpdater = {
     let updater = DataSourceUpdater(
       fetcher: perfectMindAPI.events,
-      recordInserter: perfectMindModel.insertEvent)
+      model: perfectMindModel,
+      table: .events)
     updater.delegate = self
     return updater
   }()
@@ -57,27 +55,31 @@ class DataSource {
   fileprivate lazy var transactionsUpdater: DataSourceUpdater = {
     let updater = DataSourceUpdater(
       fetcher: perfectMindAPI.transactions,
-      recordInserter: perfectMindModel.insertTransaction)
+      model: perfectMindModel,
+      table: .transactions)
     updater.delegate = self
     return updater
   }()
 
   func update(completion: @escaping ([(name: String, count: Int64)]) -> Void) {
-    guard updateQueue.operationCount < 10 else {
-      // There's already too many update operations queued up. Bail.
-      return
-    }
-    updateQueue.addOperation {
+    updateQueue.sync {
       self.attendanceUpdater.update()
       self.clientUpdater.update()
       self.teachersUpdater.update()
       self.eventsUpdater.update()
       self.transactionsUpdater.update()
+      print("Waiting on dispatch group")
       self.dispatchGroup.wait()
-      self.perfectMindModel.attendanceForThisMonth(completion: completion)
+      print("Finished waiting on dispatch group.")
+      DispatchQueue.global().async {
+        self.perfectMindModel.attendanceForThisMonth(completion: completion)
+      }
     }
   }
 
+  func save() {
+    perfectMindModel.writeAllEpochsToDisk()
+  }
 }
 
 extension DataSource: DataSourceUpdaterDelegate {

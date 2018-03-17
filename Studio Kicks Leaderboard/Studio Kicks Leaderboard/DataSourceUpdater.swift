@@ -19,22 +19,33 @@ protocol DataSourceUpdaterDelegate {
 
 class DataSourceUpdater {
 
-  fileprivate let apiFetcher: (@escaping ApiCompletion) -> Void
-  fileprivate let recordInserter: (ModelRecord) -> Void
+  fileprivate let apiFetcher: (Date?, @escaping ApiCompletion) -> Void
+  fileprivate let model: PerfectMindModel
+  fileprivate let table: PerfectMindModel.tables
 
   var delegate: DataSourceUpdaterDelegate?
 
   init(
-    fetcher: @escaping (@escaping ApiCompletion)  -> (),
-    recordInserter: @escaping (ModelRecord) -> ())
+    fetcher: @escaping (Date?, @escaping ApiCompletion)  -> (),
+    model: PerfectMindModel,
+    table: PerfectMindModel.tables)
   {
     self.apiFetcher = fetcher
-    self.recordInserter = recordInserter
+    self.model = model
+    self.table = table
+  }
+
+  fileprivate func lastUpdatedDate() -> Date? {
+    var latestDate: Date?
+    if let latestEpochForTable = model.latestEpoch(for: table) {
+      latestDate = Date(timeIntervalSince1970: TimeInterval(latestEpochForTable))
+    }
+    return latestDate
   }
 
   func update() {
     delegate?.didBeginUpdating(self)
-    apiFetcher() { [unowned self] (data, error) in
+    apiFetcher(lastUpdatedDate()) { [unowned self] (data, error) in
       guard error == nil else {
         self.delegate?.didFailUpdating(self)
         return
@@ -42,8 +53,9 @@ class DataSourceUpdater {
       guard let records = data else {
         return
       }
+      let recordInserter = self.model.recordInserter(for: self.table)
       for record in records {
-        self.recordInserter(record)
+        recordInserter(record)
       }
       self.delegate?.didEndUpdating(self)
     }

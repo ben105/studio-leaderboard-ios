@@ -62,6 +62,14 @@ enum gender: Int64 {
 
 class PerfectMindModel {
 
+  enum tables: String {
+    case attendance
+    case events
+    case teachers
+    case clients
+    case transactions
+  }
+
   fileprivate static let dbPathURL: URL = try! FileManager.default.url(
     for: .documentDirectory,
     in: .userDomainMask,
@@ -74,10 +82,40 @@ class PerfectMindModel {
 
   fileprivate let db: SQLiteManager
 
+  // Store the latest epoch by the table name.
+  fileprivate var cachedEpochs: [tables: Int64] = [:]
+
+  typealias RecordInserter = ([String: Any?]) -> Void
+
   init() {
     self.db = SQLiteManager(path: PerfectMindModel.dbPath)
     self.createAll()
+    self.insertAll()
+    self.readFromDisk(epochForTable: .attendance)
+    self.readFromDisk(epochForTable: .events)
+    self.readFromDisk(epochForTable: .teachers)
+    self.readFromDisk(epochForTable: .clients)
+    self.readFromDisk(epochForTable: .transactions)
   }
+
+  deinit {
+    writeEpochToDisk(for: .attendance)
+    writeEpochToDisk(for: .events)
+    writeEpochToDisk(for: .teachers)
+    writeEpochToDisk(for: .clients)
+    writeEpochToDisk(for: .transactions)
+  }
+
+  func recordInserter(for table: tables) -> RecordInserter {
+    switch table {
+    case .attendance: return insertAttendance
+    case .events: return insertEvent
+    case .teachers: return insertTeacher
+    case .clients: return insertClient
+    case .transactions: return insertTransaction
+    }
+  }
+
 }
 
 // MARK: - Create
@@ -180,6 +218,7 @@ extension PerfectMindModel {
       self.db.execute("""
         CREATE TABLE IF NOT EXISTS events (
           CreatedDate INTEGER,
+          ModifiedDate INTEGER,
           Details TEXT,
           EndTime INTEGER,
           ID TEXT,
@@ -247,7 +286,7 @@ extension PerfectMindModel {
 
   func insertAttendance(_ record: [String: Any?]) {
     guard let attendee = record["Attendee"] as? String,
-      let modifiedEpoch = Util.databaseEpoch(from: record["ModifiedDate"] as? String),
+      let modifiedDate = Util.databaseEpoch(from: record["ModifiedDate"] as? String),
       let renewed = record["Renewed"] as? Int64,
       let status = record["Status"] as? String else
     {
@@ -269,16 +308,18 @@ extension PerfectMindModel {
         """,
         attendee,
         event,
-        modifiedEpoch,
+        modifiedDate,
         renewed,
         status,
         timeAttended)
       self.db.execute(statement: stmt!)
     }
+    cache(latestEpoch: modifiedDate, for: .attendance)
   }
 
   func insertEvent(_ record: [String: Any?]) {
     guard let createdDate = Util.databaseEpoch(from: record["CreatedDate"] as? String),
+      let modifiedDate = Util.databaseEpoch(from: record["ModifiedDate"] as? String),
       let endTime = Util.databaseEpoch(from: record["EndTime"] as? String),
       let _id = record["Id"] as? String,
       let startTime = Util.databaseEpoch(from: record["StartTime"] as? String),
@@ -294,6 +335,7 @@ extension PerfectMindModel {
       let stmt = self.db.format("""
         INSERT INTO events (
           CreatedDate,
+          ModifiedDate,
           Details,
           EndTime,
           ID,
@@ -301,9 +343,10 @@ extension PerfectMindModel {
           StartTime,
           Subject,
           Teacher
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
         """,
          createdDate,
+         modifiedDate,
          details,
          endTime,
          _id,
@@ -313,6 +356,7 @@ extension PerfectMindModel {
          teacher)
       self.db.execute(statement: stmt!)
     }
+    cache(latestEpoch: modifiedDate, for: .events)
   }
 
   func insertTeacher(_ record: [String: Any?]) {
@@ -351,6 +395,7 @@ extension PerfectMindModel {
         number)
       self.db.execute(statement: stmt!)
     }
+    cache(latestEpoch: modifiedDate, for: .teachers)
   }
 
   func insertClient(_ record: [String: Any?]) {
@@ -404,6 +449,7 @@ extension PerfectMindModel {
       primaryNumber)
       self.db.execute(statement: stmt!)
     }
+    cache(latestEpoch: createdDate, for: .clients)
   }
 
   func insertTransaction(_ record: [String: Any?]) {
@@ -469,6 +515,7 @@ extension PerfectMindModel {
         totalAmount)
       self.db.execute(statement: stmt!)
     }
+    cache(latestEpoch: modifiedDate, for: .transactions)
   }
 
 }
@@ -498,7 +545,7 @@ extension PerfectMindModel {
       GROUP BY c.ID
       ORDER BY ClassCount desc;
     """
-    DispatchQueue.main.async {
+    DispatchQueue.main.sync {
       guard let stmt = self.db.format(query, epoch) else {
         debugPrint("Failed to retrieve attendance after the date \(epoch).")
         return
@@ -507,8 +554,60 @@ extension PerfectMindModel {
       let formattedResults = results.map {
         return (name: $0[0] as! String, count: $0[1] as! Int64)
       }
-      completion(formattedResults)
+
+      DispatchQueue.global().async {
+        completion(formattedResults)
+      }
     }
+  }
+
+}
+
+// MARK: - Latest Dates
+
+extension PerfectMindModel {
+
+  fileprivate func cache(latestEpoch: Int64, for table: tables) {
+    guard let currentEpoch = cachedEpochs[table] else {
+      cachedEpochs[table] = latestEpoch
+      return
+    }
+    // Only update the epoch if the latest epoch is actually post-current.
+    guard currentEpoch < latestEpoch else {
+      return
+    }
+    cachedEpochs[table] = latestEpoch
+  }
+
+  /// Publicly exposed getter for the cached last-updated epochs.
+  func latestEpoch(for table: tables) -> Int64? {
+    debugPrint("Latest epoch for table \(table.rawValue) being fetched.")
+    return cachedEpochs[table]
+  }
+
+  fileprivate func writeEpochToDisk(for table: tables) {
+    guard let epoch = cachedEpochs[table] else {
+      return
+    }
+    debugPrint("Writing epoch(\(epoch)) to disk.")
+    let date = Date(timeIntervalSince1970: TimeInterval(epoch))
+    UserDefaults.standard.set(date, forKey: table.rawValue)
+  }
+
+  func writeAllEpochsToDisk() {
+    writeEpochToDisk(for: .attendance)
+    writeEpochToDisk(for: .events)
+    writeEpochToDisk(for: .teachers)
+    writeEpochToDisk(for: .clients)
+    writeEpochToDisk(for: .transactions)
+  }
+
+  fileprivate func readFromDisk(epochForTable table: tables) {
+    guard let date = UserDefaults.standard.value(forKey: table.rawValue) as? Date else {
+      return
+    }
+    debugPrint("Reading a date in from disk, for table \(table.rawValue)")
+    cachedEpochs[table] = Int64(date.timeIntervalSince1970)
   }
 
 }
