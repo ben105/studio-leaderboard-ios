@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6367369F205E2443007B3B0F /* PerfectMindAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6367369E205E2443007B3B0F /* PerfectMindAPI.swift */; };
 		63B52DD9204267E700BCE72F /* PerfectMindModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B52DD8204267E700BCE72F /* PerfectMindModel.swift */; };
 		63B52DDB204271A500BCE72F /* Util.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63B52DDA204271A500BCE72F /* Util.swift */; };
 		63BBB2582045209200C3D2BF /* DataSourceUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63BBB2572045209200C3D2BF /* DataSourceUpdater.swift */; };
@@ -19,10 +20,10 @@
 		63E3296720410EB100BE9E48 /* SQLiteManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E3296620410EB100BE9E48 /* SQLiteManager.swift */; };
 		63E3296A20410FFD00BE9E48 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 63E3296920410FFD00BE9E48 /* libsqlite3.tbd */; };
 		63E3296C204119CC00BE9E48 /* DataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E3296B204119CC00BE9E48 /* DataSource.swift */; };
-		63E3296E20411A3100BE9E48 /* PerfectMindAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63E3296D20411A3100BE9E48 /* PerfectMindAPI.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		6367369E205E2443007B3B0F /* PerfectMindAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerfectMindAPI.swift; sourceTree = "<group>"; };
 		63B52DD8204267E700BCE72F /* PerfectMindModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerfectMindModel.swift; sourceTree = "<group>"; };
 		63B52DDA204271A500BCE72F /* Util.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Util.swift; sourceTree = "<group>"; };
 		63BBB2572045209200C3D2BF /* DataSourceUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSourceUpdater.swift; sourceTree = "<group>"; };
@@ -37,7 +38,6 @@
 		63E3296620410EB100BE9E48 /* SQLiteManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteManager.swift; sourceTree = "<group>"; };
 		63E3296920410FFD00BE9E48 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		63E3296B204119CC00BE9E48 /* DataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSource.swift; sourceTree = "<group>"; };
-		63E3296D20411A3100BE9E48 /* PerfectMindAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerfectMindAPI.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,8 +77,8 @@
 				63D16FAF204BDA4C00C132F1 /* LeaderboardCell.swift */,
 				63E3296B204119CC00BE9E48 /* DataSource.swift */,
 				63BBB2572045209200C3D2BF /* DataSourceUpdater.swift */,
-				63E3296D20411A3100BE9E48 /* PerfectMindAPI.swift */,
 				63E3296620410EB100BE9E48 /* SQLiteManager.swift */,
+				6367369E205E2443007B3B0F /* PerfectMindAPI.swift */,
 				63B52DD8204267E700BCE72F /* PerfectMindModel.swift */,
 				63B52DDA204271A500BCE72F /* Util.swift */,
 				63E3295820410CC000BE9E48 /* Main.storyboard */,
@@ -172,9 +172,9 @@
 				63E3296720410EB100BE9E48 /* SQLiteManager.swift in Sources */,
 				63D16FB0204BDA4C00C132F1 /* LeaderboardCell.swift in Sources */,
 				63B52DD9204267E700BCE72F /* PerfectMindModel.swift in Sources */,
+				6367369F205E2443007B3B0F /* PerfectMindAPI.swift in Sources */,
 				63BBB2582045209200C3D2BF /* DataSourceUpdater.swift in Sources */,
 				63E3295720410CC000BE9E48 /* ViewController.swift in Sources */,
-				63E3296E20411A3100BE9E48 /* PerfectMindAPI.swift in Sources */,
 				63B52DDB204271A500BCE72F /* Util.swift in Sources */,
 				63E3296C204119CC00BE9E48 /* DataSource.swift in Sources */,
 				63E3295520410CC000BE9E48 /* AppDelegate.swift in Sources */,
